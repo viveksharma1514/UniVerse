@@ -27,6 +27,7 @@ import {
   Description,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
+import { API_URL } from '../config'; // ✅ Import central API URL
 
 const MeetingOnlineSection = ({ user }) => {
   const [meetings, setMeetings] = useState([]);
@@ -49,17 +50,18 @@ const MeetingOnlineSection = ({ user }) => {
       const token = localStorage.getItem('token');
       const endpoint =
         user.role === 'teacher'
-          ? 'http://localhost:5000/api/meetingonline/teacher'
-          : 'http://localhost:5000/api/meetingonline/student';
+          ? `${API_URL}/api/meetingonline/teacher`
+          : `${API_URL}/api/meetingonline/student`;
 
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      if (!res.ok) throw new Error(`Failed to fetch meetings (${res.status})`);
       const data = await res.json();
       setMeetings(data);
     } catch (err) {
-      console.error('Fetch meetings error:', err);
+      console.error('❌ Fetch meetings error:', err);
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ const MeetingOnlineSection = ({ user }) => {
       const jitsiRoom = `${user.name.replace(/\s+/g, '_')}_${Date.now()}`;
       const link = `https://meet.jit.si/${jitsiRoom}`;
 
-      const res = await fetch('http://localhost:5000/api/meetingonline', {
+      const res = await fetch(`${API_URL}/api/meetingonline`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -115,7 +117,7 @@ const MeetingOnlineSection = ({ user }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/meetingonline/${meetingId}`, {
+      const res = await fetch(`${API_URL}/api/meetingonline/${meetingId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -135,7 +137,7 @@ const MeetingOnlineSection = ({ user }) => {
   const handleJoinMeeting = async (meetingId, link) => {
     if (user.role === 'student') {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/attendanceonline/${meetingId}/join`, {
+      await fetch(`${API_URL}/api/attendanceonline/${meetingId}/join`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -147,7 +149,7 @@ const MeetingOnlineSection = ({ user }) => {
   const handleViewAttendance = async (meetingId) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/attendanceonline/${meetingId}`, {
+      const res = await fetch(`${API_URL}/api/attendanceonline/${meetingId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -155,6 +157,8 @@ const MeetingOnlineSection = ({ user }) => {
         const data = await res.json();
         setAttendanceList(data);
         setOpenAttendance(true);
+      } else {
+        console.error('Failed to fetch attendance:', res.status);
       }
     } catch (err) {
       console.error('Fetch attendance error:', err);
@@ -247,7 +251,6 @@ const MeetingOnlineSection = ({ user }) => {
                     </Box>
                   </Box>
 
-                  {/* Delete Button for Teacher */}
                   {user.role === 'teacher' && (
                     <IconButton color="error" onClick={() => handleDeleteMeeting(m._id)}>
                       <DeleteIcon />

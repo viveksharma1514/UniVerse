@@ -1,6 +1,7 @@
 // src/context/NotificationContext.js
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useSocket } from './SocketContext';
+import { API_URL } from '../config'; // ✅ Added central API import
 
 const NotificationContext = createContext();
 
@@ -25,7 +26,7 @@ export const NotificationProvider = ({ children }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/notifications', {
+      const response = await fetch(`${API_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -47,7 +48,7 @@ export const NotificationProvider = ({ children }) => {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/notifications/unread-count', {
+      const response = await fetch(`${API_URL}/api/notifications/unread-count`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -74,7 +75,7 @@ export const NotificationProvider = ({ children }) => {
   const markAsRead = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+      const response = await fetch(`${API_URL}/api/notifications/${id}/read`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -99,7 +100,7 @@ export const NotificationProvider = ({ children }) => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/notifications/mark-all-read', {
+      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -122,7 +123,7 @@ export const NotificationProvider = ({ children }) => {
   const deleteNotification = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/notifications/${id}`, {
+      const response = await fetch(`${API_URL}/api/notifications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -150,18 +151,15 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (!socket) return;
 
-    // 🆕 New real-time notification
     socket.on('new-notification', (notif) => {
       console.log('🔔 Real-time notification received:', notif.title);
       addNotification(notif);
     });
 
-    // 🟢 Notification updated (read, etc.)
     socket.on('notification-updated', (updatedNotif) => {
       setNotifications((prev) =>
         prev.map((n) => (n._id === updatedNotif._id ? updatedNotif : n))
       );
-      // update count correctly
       updateUnreadCount(
         notifications.map((n) =>
           n._id === updatedNotif._id ? updatedNotif : n
@@ -169,14 +167,12 @@ export const NotificationProvider = ({ children }) => {
       );
     });
 
-    // ✅ All notifications marked as read
     socket.on('all-notifications-read', () => {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
       console.log('✅ All notifications marked as read (socket)');
     });
 
-    // 🗑️ Notification deleted
     socket.on('notification-deleted', (id) => {
       setNotifications((prev) => prev.filter((n) => n._id !== id));
       console.log(`🗑️ Notification ${id} deleted`);
@@ -206,7 +202,7 @@ export const NotificationProvider = ({ children }) => {
     markAllAsRead,
     deleteNotification,
     refreshUnreadCount: fetchUnreadCount,
-    addNotification, // 🔥 added for use by NotificationBell
+    addNotification, // 🔥 used by NotificationBell
   };
 
   return (

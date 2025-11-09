@@ -15,27 +15,26 @@ import {
   Delete,
   CloudUpload
 } from '@mui/icons-material';
+import { API_URL } from '../config'; // ✅ added for future-safe uploads (if needed later)
 
 function FileUpload({ onFilesChange, maxFiles = 10, maxSizeMB = 50 }) {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
+  // ✅ File select handler
   const handleFileSelect = (event) => {
     const selectedFiles = Array.from(event.target.files);
     setError('');
 
-    // Validate file count
     if (files.length + selectedFiles.length > maxFiles) {
       setError(`Maximum ${maxFiles} files allowed`);
       return;
     }
 
-    // Validate file sizes
     const oversizedFiles = selectedFiles.filter(
       file => file.size > maxSizeMB * 1024 * 1024
     );
-    
     if (oversizedFiles.length > 0) {
       setError(`Files must be smaller than ${maxSizeMB}MB`);
       return;
@@ -43,9 +42,8 @@ function FileUpload({ onFilesChange, maxFiles = 10, maxSizeMB = 50 }) {
 
     const newFiles = [...files, ...selectedFiles];
     setFiles(newFiles);
-    onFilesChange(newFiles); // Pass actual File objects, not processed data
+    onFilesChange(newFiles);
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -88,9 +86,7 @@ function FileUpload({ onFilesChange, maxFiles = 10, maxSizeMB = 50 }) {
           borderColor: 'primary.main',
           backgroundColor: 'action.hover',
           cursor: 'pointer',
-          '&:hover': {
-            backgroundColor: 'action.selected',
-          }
+          '&:hover': { backgroundColor: 'action.selected' },
         }}
         onClick={() => fileInputRef.current?.click()}
       >

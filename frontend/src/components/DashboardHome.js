@@ -21,6 +21,7 @@ import {
   Notifications as NotificationsIcon,
 } from "@mui/icons-material";
 import { useSocket } from "../context/SocketContext";
+import { API_URL } from "../config"; // ✅ centralized API base
 
 function DashboardHome({ user }) {
   const [assignments, setAssignments] = useState([]);
@@ -33,52 +34,32 @@ function DashboardHome({ user }) {
   const { socket } = useSocket();
   const token = localStorage.getItem("token");
 
-  // ✅ Fetch dashboard data with error handling
+  /* ================================================================
+     ✅ Fetch dashboard data with error handling
+  ================================================================= */
   const fetchData = useCallback(async () => {
     try {
-      const requests = [
-        // Fetch assignments
-        fetch("http://localhost:5000/api/assignments/student", {
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => ({ ok: false })), // Handle failed requests
-        
-        // Fetch meetings
-        fetch("http://localhost:5000/api/meetings/student", {
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => ({ ok: false })),
-        
-        // Fetch notes (with error handling)
-        fetch("http://localhost:5000/api/notes", {
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => ({ ok: false })),
-        
-        // Fetch announcements (with error handling)
-        fetch("http://localhost:5000/api/announcements", {
+      const endpoints = [
+        `${API_URL}/api/assignments/student`,
+        `${API_URL}/api/meetings/student`,
+        `${API_URL}/api/notes`,
+        `${API_URL}/api/announcements`,
+      ];
+
+      const requests = endpoints.map((url) =>
+        fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
         }).catch(() => ({ ok: false }))
-      ];
+      );
 
       const [aRes, mRes, nRes, anRes] = await Promise.all(requests);
 
-      // Handle responses with error checking
       if (aRes.ok) setAssignments(await aRes.json());
       if (mRes.ok) setMeetings(await mRes.json());
-      
-      // For notes and announcements, set empty arrays if API fails
-      if (nRes.ok) {
-        setNotes(await nRes.json());
-      } else {
-        setNotes([]); // Set empty array if API fails
-      }
-      
-      if (anRes.ok) {
-        setAnnouncements(await anRes.json());
-      } else {
-        setAnnouncements([]); // Set empty array if API fails
-      }
+      setNotes(nRes.ok ? await nRes.json() : []);
+      setAnnouncements(anRes.ok ? await anRes.json() : []);
     } catch (error) {
-      console.error("Dashboard data fetch error:", error);
-      // Set default empty arrays for failed APIs
+      console.error("🚨 Dashboard data fetch error:", error);
       setNotes([]);
       setAnnouncements([]);
     }
@@ -88,63 +69,60 @@ function DashboardHome({ user }) {
     fetchData();
   }, [fetchData, user]);
 
-  // ✅ Real-time notifications from socket
+  /* ================================================================
+     ✅ Real-time updates via Socket
+  ================================================================= */
   useEffect(() => {
     if (!socket) return;
 
-    const onNewNotification = (notif) => {
-      console.log("Socket: new-notification", notif);
-
-      if (notif?.type === "meeting_scheduled" || notif?.type === "meeting_reminder") {
-        fetchData();
-        setSnack({ open: true, message: `New meeting scheduled: ${notif.title}`, severity: "info" });
-        setHighlightId("meetings");
-      } else if (notif?.type === "class_scheduled") {
-        setAnnouncements((prev) => [
-          { title: notif.title, message: notif.message, createdAt: notif.createdAt || new Date() },
-          ...prev,
-        ]);
-        setSnack({ open: true, message: notif.title || "New class scheduled", severity: "info" });
-        setHighlightId("announcements");
-      } else if (notif?.type === "new_assignment") {
-        fetchData();
-        setSnack({ open: true, message: `New assignment: ${notif.title}`, severity: "info" });
-        setHighlightId("assignments");
-      } else {
-        setAnnouncements((prev) => [
-          { title: notif.title, message: notif.message, createdAt: notif.createdAt || new Date() },
-          ...prev,
-        ]);
-        setSnack({ open: true, message: notif.title || "New update", severity: "info" });
-        setHighlightId("announcements");
+    const handleNotification = (notif) => {
+      console.log("📢 Socket notification:", notif);
+      switch (notif?.type) {
+        case "meeting_scheduled":
+        case "meeting_reminder":
+          fetchData();
+          setSnack({ open: true, message: `New meeting: ${notif.title}`, severity: "info" });
+          setHighlightId("meetings");
+          break;
+        case "class_scheduled":
+          setAnnouncements((prev) => [
+            { title: notif.title, message: notif.message, createdAt: notif.createdAt || new Date() },
+            ...prev,
+          ]);
+          setSnack({ open: true, message: notif.title || "New class scheduled", severity: "info" });
+          setHighlightId("announcements");
+          break;
+        case "new_assignment":
+          fetchData();
+          setSnack({ open: true, message: `New assignment: ${notif.title}`, severity: "info" });
+          setHighlightId("assignments");
+          break;
+        default:
+          setAnnouncements((prev) => [
+            { title: notif.title, message: notif.message, createdAt: notif.createdAt || new Date() },
+            ...prev,
+          ]);
+          setSnack({ open: true, message: notif.title || "New update", severity: "info" });
+          setHighlightId("announcements");
+          break;
       }
-
       setTimeout(() => setHighlightId(null), 3000);
     };
 
-    const onClassScheduled = (payload) => {
-      console.log("Socket: class-scheduled", payload);
-      if (payload) {
-        if (payload.meeting) setMeetings((prev) => [payload.meeting, ...prev]);
-        if (payload.announcement) setAnnouncements((prev) => [payload.announcement, ...prev]);
-      }
-      setSnack({ open: true, message: "New class scheduled", severity: "info" });
-      setHighlightId("announcements");
-      setTimeout(() => setHighlightId(null), 3000);
-    };
-
-    socket.on("new-notification", onNewNotification);
-    socket.on("meeting-scheduled", onNewNotification);
-    socket.on("class-scheduled", onClassScheduled);
+    socket.on("new-notification", handleNotification);
+    socket.on("meeting-scheduled", handleNotification);
+    socket.on("class-scheduled", handleNotification);
 
     return () => {
-      socket.off("new-notification", onNewNotification);
-      socket.off("meeting-scheduled", onNewNotification);
-      socket.off("class-scheduled", onClassScheduled);
+      socket.off("new-notification", handleNotification);
+      socket.off("meeting-scheduled", handleNotification);
+      socket.off("class-scheduled", handleNotification);
     };
   }, [socket, fetchData]);
 
-  // ✅ Dynamic stats with fallback values
+  /* ================================================================
+     📊 Dynamic stats
+  ================================================================= */
   const stats =
     user?.role === "teacher"
       ? [
@@ -211,6 +189,9 @@ function DashboardHome({ user }) {
           },
         ];
 
+  /* ================================================================
+     🎨 Render UI
+  ================================================================= */
   return (
     <Box
       sx={{
@@ -264,7 +245,7 @@ function DashboardHome({ user }) {
           </Typography>
         </Paper>
 
-        {/* User Info */}
+        {/* User Info Section */}
         <Paper
           sx={{
             p: 3,
@@ -304,7 +285,7 @@ function DashboardHome({ user }) {
           </Box>
         </Paper>
 
-        {/* Stats */}
+        {/* Stats Cards */}
         <Grid container spacing={3}>
           {stats.map((stat) => {
             const isHighlighted = highlightId === stat.key;
@@ -395,7 +376,7 @@ function DashboardHome({ user }) {
         </Grid>
       </Container>
 
-      {/* Snackbar */}
+      {/* Snackbar Notifications */}
       <Snackbar
         open={snack.open}
         autoHideDuration={3500}

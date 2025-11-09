@@ -1,5 +1,5 @@
 // src/components/Timetable.js
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -10,15 +10,12 @@ import {
   Avatar,
   useTheme,
   Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import { API_URL } from "../config"; // ✅ for deployment
 
-/**
- * Modern Timetable (Full-page 6-day grid)
- * - Monday -> Saturday
- * - Replace `schedule` entries with your real timetable data
- */
-
+// 🎨 Subject color palette
 const subjectColors = {
   AIML: { bg: "linear-gradient(135deg,#FFE58A, #FFDD55)", text: "#2b2b2b" },
   ADL: { bg: "linear-gradient(135deg,#D6B3FF,#B98BFF)", text: "#2b0836" },
@@ -29,7 +26,8 @@ const subjectColors = {
   DEFAULT: { bg: "linear-gradient(135deg,#ffffff,#f7f7f7)", text: "#222" },
 };
 
-const sampleSchedule = {
+// 🗓 Sample fallback data
+const fallbackSchedule = {
   Monday: [
     { time: "08:45 - 09:40", subj: "PE-I HCI", teacher: "Prof. Amit", room: "AU", tag: "Online" },
     { time: "09:40 - 10:35", subj: "PBL-III", teacher: "Prof. Rahil", room: "S-111" },
@@ -67,18 +65,41 @@ const sampleSchedule = {
 
 function Timetable() {
   const theme = useTheme();
+  const [schedule, setSchedule] = useState({});
+  const [loading, setLoading] = useState(true);
 
   const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  const getStyleForSubj = (s) => {
-    if (!s) return subjectColors.DEFAULT;
-    const key = Object.keys(subjectColors).find((k) => s.toUpperCase().includes(k));
+  const getStyleForSubj = (subject) => {
+    if (!subject) return subjectColors.DEFAULT;
+    const key = Object.keys(subjectColors).find((k) =>
+      subject.toUpperCase().includes(k)
+    );
     return subjectColors[key] || subjectColors.DEFAULT;
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    fetch(`${API_URL}/api/timetable`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setSchedule(data || fallbackSchedule);
+        setLoading(false);
+      })
+      .catch(() => {
+        console.warn("⚠️ Timetable fetch failed, using fallback schedule");
+        setSchedule(fallbackSchedule);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <Box sx={{ py: 4 }}>
       <Container maxWidth="lg">
+        {/* HEADER */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
           <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
             <ScheduleIcon />
@@ -93,102 +114,153 @@ function Timetable() {
           </Box>
         </Box>
 
-        <Grid container spacing={2}>
-          {dayOrder.map((day) => (
-            <Grid item xs={12} sm={6} md={4} key={day}>
-              <Paper
-                elevation={6}
-                sx={{
-                  borderRadius: 3,
-                  overflow: "hidden",
-                  p: 2,
-                  minHeight: 240,
-                  display: "flex",
-                  flexDirection: "column",
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.6))",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                <Box sx={{ mb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {day}
-                  </Typography>
-                  <Chip label={`${sampleSchedule[day]?.length || 0} items`} size="small" />
-                </Box>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={2}>
+            {dayOrder.map((day) => (
+              <Grid item xs={12} sm={6} md={4} key={day}>
+                <Paper
+                  elevation={6}
+                  sx={{
+                    borderRadius: 3,
+                    p: 2,
+                    minHeight: 240,
+                    display: "flex",
+                    flexDirection: "column",
+                    background:
+                      "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.6))",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      mb: 1,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {day}
+                    </Typography>
+                    <Chip
+                      label={`${schedule[day]?.length || 0} items`}
+                      size="small"
+                    />
+                  </Box>
 
-                <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
-                  {sampleSchedule[day] && sampleSchedule[day].length > 0 ? (
-                    sampleSchedule[day].map((slot, idx) => {
-                      const style = getStyleForSubj(slot.subj);
-                      return (
-                        <Tooltip key={idx} title={`${slot.teacher} • ${slot.room}`} arrow>
-                          <Paper
-                            elevation={2}
-                            sx={{
-                              p: 1.2,
-                              borderRadius: 2,
-                              display: "flex",
-                              gap: 1,
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              background: style.bg,
-                              color: style.text,
-                              transition: "transform .15s ease, box-shadow .15s ease",
-                              "&:hover": { transform: "translateY(-4px)", boxShadow: "0 8px 30px rgba(0,0,0,0.12)" },
-                            }}
+                  <Box
+                    sx={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                      mt: 1,
+                    }}
+                  >
+                    {schedule[day] && schedule[day].length > 0 ? (
+                      schedule[day].map((slot, idx) => {
+                        const style = getStyleForSubj(slot.subj);
+                        return (
+                          <Tooltip
+                            key={idx}
+                            title={`${slot.teacher} • ${slot.room}`}
+                            arrow
                           >
-                            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flex: 1 }}>
+                            <Paper
+                              elevation={2}
+                              sx={{
+                                p: 1.2,
+                                borderRadius: 2,
+                                display: "flex",
+                                justifyContent: "space-between",
+                                background: style.bg,
+                                color: style.text,
+                                transition:
+                                  "transform .15s ease, box-shadow .15s ease",
+                                "&:hover": {
+                                  transform: "translateY(-4px)",
+                                  boxShadow:
+                                    "0 8px 30px rgba(0,0,0,0.12)",
+                                },
+                              }}
+                            >
                               <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                                <Typography
+                                  variant="subtitle2"
+                                  sx={{ fontWeight: 800 }}
+                                >
                                   {slot.subj}
                                 </Typography>
-                                <Typography variant="caption" sx={{ display: "block", opacity: 0.85 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ opacity: 0.85 }}
+                                >
                                   {slot.teacher} • {slot.room}
                                 </Typography>
                               </Box>
-                            </Box>
+                              <Box sx={{ textAlign: "right" }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontWeight: 700 }}
+                                >
+                                  {slot.time}
+                                </Typography>
+                                {slot.tag && (
+                                  <Chip
+                                    size="small"
+                                    label={slot.tag}
+                                    sx={{
+                                      mt: 0.5,
+                                      bgcolor: "rgba(255,255,255,0.35)",
+                                      color: "#111",
+                                      fontWeight: 700,
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            </Paper>
+                          </Tooltip>
+                        );
+                      })
+                    ) : (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          height: "100%",
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          No scheduled classes
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        )}
 
-                            <Box sx={{ textAlign: "right", ml: 1 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                {slot.time}
-                              </Typography>
-                              {slot.tag && (
-                                <Chip
-                                  size="small"
-                                  label={slot.tag}
-                                  sx={{
-                                    mt: 0.5,
-                                    bgcolor: "rgba(255,255,255,0.35)",
-                                    color: "#111",
-                                    fontWeight: 700,
-                                  }}
-                                />
-                              )}
-                            </Box>
-                          </Paper>
-                        </Tooltip>
-                      );
-                    })
-                  ) : (
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No scheduled classes
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* Legend */}
-        <Box sx={{ mt: 3, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+        {/* LEGEND */}
+        <Box
+          sx={{
+            mt: 3,
+            display: "flex",
+            gap: 1,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
           <Typography variant="subtitle2" sx={{ mr: 1, fontWeight: 700 }}>
             Legend:
           </Typography>
-          {Object.entries(subjectColors).map(([k, v]) => (
+          {Object.entries(subjectColors).map(([k, v]) =>
             k === "DEFAULT" ? null : (
               <Chip
                 key={k}
@@ -202,7 +274,7 @@ function Timetable() {
                 }}
               />
             )
-          ))}
+          )}
         </Box>
       </Container>
     </Box>

@@ -1,60 +1,72 @@
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+// utils/multerConfig.js
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-// Ensure upload directories exist
-const assignmentsDir = './uploads/assignments';
-const submissionsDir = './uploads/assignments/submissions';
-const materialsDir = './uploads/assignments/materials';
+// ✅ Define base upload paths
+const baseDir = path.join(__dirname, "..", "uploads");
+const assignmentsDir = path.join(baseDir, "assignments");
+const submissionsDir = path.join(assignmentsDir, "submissions");
+const materialsDir = path.join(assignmentsDir, "materials");
 
-[assignmentsDir, submissionsDir, materialsDir].forEach(dir => {
+// ✅ Ensure directories exist (safe for Render & local)
+[assignmentsDir, submissionsDir, materialsDir].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
+    console.log(`📂 Created directory: ${dir}`);
   }
 });
 
-// Storage configuration for assignment submissions
+// ✅ Storage configuration for submissions
 const submissionStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log('📁 Multer destination - saving to:', submissionsDir);
+    console.log("📁 Multer saving to:", submissionsDir);
     cb(null, submissionsDir);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = 'submission-' + uniqueSuffix + path.extname(file.originalname);
-    console.log('📄 Multer filename:', filename, 'Original:', file.originalname);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const safeName = file.originalname.replace(/\s+/g, "_"); // avoid spaces
+    const filename = `submission-${uniqueSuffix}-${safeName}`;
+    console.log("📄 Saving file as:", filename);
     cb(null, filename);
-  }
+  },
 });
 
-// File filter for security - MAKE IT MORE LENIENT FOR TESTING
+// ✅ File filter (safe + dev mode lenient)
 const fileFilter = (req, file, cb) => {
-  console.log('🔍 Multer file filter - File:', file.originalname, 'Mimetype:', file.mimetype);
-  
-  // For testing, accept ALL file types temporarily
-  cb(null, true);
+  console.log("🔍 Checking file:", file.originalname, "Type:", file.mimetype);
+
+  // Accept common types or allow all if needed
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/zip",
+    "image/jpeg",
+    "image/png",
+    "text/plain",
+  ];
+
+  if (process.env.NODE_ENV === "development") {
+    cb(null, true);
+  } else {
+    allowedTypes.includes(file.mimetype)
+      ? cb(null, true)
+      : cb(new Error("❌ Invalid file type"), false);
+  }
 };
 
-// Create multer instances with better error handling
+// ✅ Multer upload configs
 const uploadSubmission = multer({
   storage: submissionStorage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
-    files: 10 // Max 10 files per submission
-  }
+  fileFilter,
+  limits: { fileSize: 50 * 1024 * 1024, files: 10 }, // 50MB, 10 files
 });
 
 const uploadMaterial = multer({
-  storage: submissionStorage, // Use same storage for now
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 50 * 1024 * 1024,
-    files: 10
-  }
+  storage: submissionStorage, // You can customize later if needed
+  fileFilter,
+  limits: { fileSize: 50 * 1024 * 1024, files: 10 },
 });
 
-module.exports = {
-  uploadSubmission,
-  uploadMaterial
-};
+module.exports = { uploadSubmission, uploadMaterial };

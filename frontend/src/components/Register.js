@@ -13,6 +13,7 @@ import {
 import { SchoolRounded } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 
 function Register({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -43,7 +44,7 @@ function Register({ onLogin }) {
     setError("");
 
     try {
-      const response = await axios.post("/api/auth/register", formData);
+      const response = await axios.post(`${API_URL}/api/auth/register`, formData);
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
       onLogin(response.data.user);
@@ -86,7 +87,6 @@ function Register({ onLogin }) {
             margin: "auto",
           }}
         >
-          {/* Logo and Title */}
           <Box sx={{ textAlign: "center", mb: 5 }}>
             <SchoolRounded
               sx={{
@@ -143,7 +143,6 @@ function Register({ onLogin }) {
             </Alert>
           )}
 
-          {/* Form */}
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
               margin="normal"
@@ -333,20 +332,14 @@ const textFieldStyle = {
     borderRadius: 3,
     background: "rgba(255,255,255,0.15)",
     color: "white",
-    "& fieldset": {
-      borderColor: "rgba(255,255,255,0.3)",
-    },
-    "&:hover fieldset": {
-      borderColor: "rgba(255,255,255,0.5)",
-    },
+    "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
     "&.Mui-focused fieldset": {
       borderColor: "#aab6ff",
       boxShadow: "0 0 12px rgba(170,182,255,0.6)",
     },
   },
-  "& .MuiInputBase-input": {
-    color: "white",
-  },
+  "& .MuiInputBase-input": { color: "white" },
 };
 
 export default Register;

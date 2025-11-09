@@ -11,6 +11,7 @@ import {
 import { Send } from "@mui/icons-material";
 import { useSocket } from "../context/SocketContext";
 import axios from "axios";
+import { API_URL } from "../config"; // ✅ centralized backend URL
 
 const ChatWindow = ({ chat, user }) => {
   const [messages, setMessages] = useState([]);
@@ -19,22 +20,26 @@ const ChatWindow = ({ chat, user }) => {
   const messagesEndRef = useRef(null);
   const { socket } = useSocket();
 
+  /* ================================================================
+     ✅ Fetch Chat Messages
+  ================================================================= */
   const fetchMessages = useCallback(async () => {
+    if (!chat?._id) return;
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/chats/${chat._id}/messages`,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
+      const res = await axios.get(`${API_URL}/api/chats/${chat._id}/messages`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
       setMessages(res.data || []);
     } catch (err) {
-      console.error("❌ Error fetching messages:", err);
+      console.error("❌ Error fetching messages:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
-  }, [chat._id]);
+  }, [chat?._id]);
 
+  /* ================================================================
+     ✅ Socket Initialization & Message Handling
+  ================================================================= */
   useEffect(() => {
     if (!chat || !socket) return;
     socket.emit("join-chat", chat._id);
@@ -47,18 +52,26 @@ const ChatWindow = ({ chat, user }) => {
     };
 
     socket.on("receive-message", handleReceiveMessage);
+
     return () => {
       socket.emit("leave-chat", chat._id);
       socket.off("receive-message", handleReceiveMessage);
     };
   }, [chat, socket, fetchMessages]);
 
+  /* ================================================================
+     ✅ Scroll to bottom when new messages arrive
+  ================================================================= */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* ================================================================
+     ✅ Send Message
+  ================================================================= */
   const sendMessage = async () => {
     if (!newMessage.trim() || !socket) return;
+
     const messageData = {
       chat: chat._id,
       sender: { _id: user._id, name: user.name },
@@ -72,12 +85,12 @@ const ChatWindow = ({ chat, user }) => {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/chats/${chat._id}/messages`,
+        `${API_URL}/api/chats/${chat._id}/messages`,
         { content: messageData.content },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
     } catch (err) {
-      console.error("❌ Error saving message:", err);
+      console.error("❌ Error saving message:", err.response?.data || err.message);
     }
   };
 
@@ -88,11 +101,17 @@ const ChatWindow = ({ chat, user }) => {
     }
   };
 
+  /* ================================================================
+     🧩 Identify Other Participant
+  ================================================================= */
   const otherParticipant =
     chat.participants?.find((p) => p._id !== user._id) ||
     chat.teacher ||
     chat.student;
 
+  /* ================================================================
+     🧩 UI
+  ================================================================= */
   return (
     <Box
       sx={{
@@ -158,12 +177,7 @@ const ChatWindow = ({ chat, user }) => {
             <CircularProgress sx={{ color: "#6366f1" }} />
           </Box>
         ) : messages.length === 0 ? (
-          <Box
-            textAlign="center"
-            color="#6b7280"
-            mt={4}
-            fontStyle="italic"
-          >
+          <Box textAlign="center" color="#6b7280" mt={4} fontStyle="italic">
             No messages yet. Start chatting with{" "}
             {otherParticipant?.name?.split(" ")[0]} 👋
           </Box>

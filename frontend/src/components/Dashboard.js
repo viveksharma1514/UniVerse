@@ -13,6 +13,7 @@ import BusRoute from "./BusRoute";
 import TeacherSchedule from "./TeacherSchedule";
 import TeacherStudents from "./TeacherStudents";
 import StudentAttendance from "./StudentAttendance";
+import { API_URL } from "../config"; // ✅ Added for future-safe API calls
 
 function Dashboard({ user }) {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -26,16 +27,24 @@ function Dashboard({ user }) {
   const renderContent = () => {
     console.log("Active Tab:", activeTab);
     console.log("User Role:", user.role);
-    
+
     switch (activeTab) {
       case "dashboard":
         return <DashboardHome user={user} />;
       case "meetings":
         return <MeetingOnlineSection user={user} />;
       case "schedule":
-        return user.role === 'teacher' ? <TeacherSchedule user={user} /> : <Timetable user={user} />;
+        return user.role === "teacher" ? (
+          <TeacherSchedule user={user} />
+        ) : (
+          <Timetable user={user} />
+        );
       case "students":
-        return user.role === 'teacher' ? <TeacherStudents user={user} /> : <StudentAttendance user={user} />;
+        return user.role === "teacher" ? (
+          <TeacherStudents user={user} />
+        ) : (
+          <StudentAttendance user={user} />
+        );
       case "timetable":
         return <Timetable user={user} />;
       case "assignments":
@@ -43,11 +52,17 @@ function Dashboard({ user }) {
       case "teachers":
         return <TeacherDirectory user={user} />;
       case "chat":
-        return <ChatDashboard user={user} onBack={() => setActiveTab("dashboard")} />;
+        return (
+          <ChatDashboard user={user} onBack={() => setActiveTab("dashboard")} />
+        );
       case "events":
         return <Events user={user} />;
       case "attendance":
-        return user.role === 'teacher' ? <TeacherStudents user={user} /> : <StudentAttendance user={user} />;
+        return user.role === "teacher" ? (
+          <TeacherStudents user={user} />
+        ) : (
+          <StudentAttendance user={user} />
+        );
       case "bus":
         return <BusRoute user={user} />;
       default:
@@ -83,7 +98,7 @@ function Dashboard({ user }) {
       <Navigation user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Area */}
-      <Box component="main" sx={{ flexGrow: 1, position: 'relative', zIndex: 2 }}>
+      <Box component="main" sx={{ flexGrow: 1, position: "relative", zIndex: 2 }}>
         {/* App Bar */}
         <AppBar
           position="fixed"

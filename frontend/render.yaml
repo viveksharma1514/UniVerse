@@ -1,0 +1,17 @@
+# render.yaml — React Frontend Deployment on Render
+
+services:
+  - type: web
+    name: universe-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://your-backend-service.onrender.com
+      - key: NODE_VERSION
+        value: 18
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,38 +1,54 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+// routes/auth.js
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+
 const router = express.Router();
 
-// Register route
-router.post('/register', async (req, res) => {
+/* ============================================================
+   📝 REGISTER (Student or Teacher)
+============================================================ */
+router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role, enrollmentId, subject, department } = req.body;
-    
-    console.log('Registration attempt for:', email); // This will help us debug
-    
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    const { name, email, password, role, enrollmentId, subject, department } =
+      req.body;
+
+    console.log("🆕 Registration attempt:", email);
+
+    // Validate input
+    if (!name || !email || !password || !role) {
+      return res
+        .status(400)
+        .json({ success: false, message: "All required fields must be provided" });
     }
 
-    // Create user
+    // Check for existing user
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User already exists with this email" });
+    }
+
+    // Create new user
     const user = await User.create({
       name,
       email,
       password,
       role,
-      enrollmentId: role === 'student' ? enrollmentId : undefined,
-      subject: role === 'teacher' ? subject : undefined,
-      department: role === 'student' ? department : undefined
+      enrollmentId: role === "student" ? enrollmentId : undefined,
+      subject: role === "teacher" ? subject : undefined,
+      department: department || undefined,
     });
 
-    // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
-      expiresIn: '30d' 
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "30d",
     });
 
     res.status(201).json({
+      success: true,
+      message: "User registered successfully",
       token,
       user: {
         id: user._id,
@@ -41,38 +57,53 @@ router.post('/register', async (req, res) => {
         role: user.role,
         enrollmentId: user.enrollmentId,
         subject: user.subject,
-        department: user.department
-      }
+        department: user.department,
+      },
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("❌ Registration error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during registration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 
-// Login route
-router.post('/login', async (req, res) => {
+/* ============================================================
+   🔐 LOGIN (JWT-based)
+============================================================ */
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and password are required" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
-      expiresIn: '30d' 
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "30d",
     });
 
-    res.json({
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
       token,
       user: {
         id: user._id,
@@ -81,11 +112,16 @@ router.post('/login', async (req, res) => {
         role: user.role,
         enrollmentId: user.enrollmentId,
         subject: user.subject,
-        department: user.department
-      }
+        department: user.department,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("❌ Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during login",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 

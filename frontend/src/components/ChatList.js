@@ -25,7 +25,11 @@ const ChatList = ({ chats, selectedChat, onSelectChat, user }) => {
   const currentUser = user || {};
   const userRole = currentUser.role || "student";
 
+  /* ================================================================
+     ✅ Filter chats by search
+  ================================================================= */
   useEffect(() => {
+    if (!chats) return;
     setFilteredChats(
       chats.filter(
         (chat) =>
@@ -40,16 +44,22 @@ const ChatList = ({ chats, selectedChat, onSelectChat, user }) => {
     );
   }, [chats, searchTerm]);
 
+  /* ================================================================
+     ✅ Listen to socket updates
+  ================================================================= */
   useEffect(() => {
     if (socket) {
       const handleNewMessage = (data) => {
-        console.log("📩 New message received:", data);
+        console.log("📩 New message received in ChatList:", data);
       };
       socket.on("newMessage", handleNewMessage);
       return () => socket.off("newMessage", handleNewMessage);
     }
   }, [socket]);
 
+  /* ================================================================
+     🕒 Helpers
+  ================================================================= */
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -69,7 +79,7 @@ const ChatList = ({ chats, selectedChat, onSelectChat, user }) => {
       }
     }
 
-    const other = chat.participants?.find((p) => p._id !== currentUser.id);
+    const other = chat.participants?.find((p) => p._id !== currentUser._id);
     return other?.name || "Unknown User";
   };
 
@@ -85,7 +95,7 @@ const ChatList = ({ chats, selectedChat, onSelectChat, user }) => {
   const getLastMessageTime = (chat) => {
     const last =
       chat.lastMessage || chat.messages?.[chat.messages.length - 1];
-    return last ? formatTime(last.timestamp) : "";
+    return last ? formatTime(last.timestamp || last.createdAt) : "";
   };
 
   const getRoleBadge = (chat) => {
@@ -146,6 +156,9 @@ const ChatList = ({ chats, selectedChat, onSelectChat, user }) => {
     }
   };
 
+  /* ================================================================
+     🧩 Render UI
+  ================================================================= */
   return (
     <Box
       sx={{
@@ -216,7 +229,7 @@ const ChatList = ({ chats, selectedChat, onSelectChat, user }) => {
                     color="success"
                     invisible={
                       !chat.participants?.some(
-                        (p) => p._id !== user.id && p.isOnline
+                        (p) => p._id !== currentUser._id && p.isOnline
                       )
                     }
                   >

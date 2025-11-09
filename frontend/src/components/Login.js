@@ -21,6 +21,7 @@ import {
 } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config"; // ✅ Import centralized API base URL
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -36,7 +37,7 @@ function Login({ onLogin }) {
     setError("");
 
     try {
-      const response = await axios.post("/api/auth/login", {
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password,
       });
@@ -45,7 +46,8 @@ function Login({ onLogin }) {
       localStorage.setItem("user", JSON.stringify(response.data.user));
       onLogin(response.data.user);
     } catch (error) {
-      setError(error.response?.data?.message || "Login failed");
+      console.error("Login error:", error);
+      setError(error.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -76,10 +78,10 @@ function Login({ onLogin }) {
             padding: 8,
             borderRadius: 5,
             backdropFilter: "blur(25px)",
-            background: "rgba(255, 255, 255, 0.10)", // more transparent
+            background: "rgba(255, 255, 255, 0.10)",
             border: "1px solid rgba(255,255,255,0.25)",
             boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
-            maxWidth: "950px", // wider card
+            maxWidth: "950px",
             margin: "auto",
           }}
         >
@@ -167,20 +169,14 @@ function Login({ onLogin }) {
                   borderRadius: 3,
                   background: "rgba(255,255,255,0.18)",
                   color: "white",
-                  "& fieldset": {
-                    borderColor: "rgba(255,255,255,0.3)",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "rgba(255,255,255,0.5)",
-                  },
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
                   "&.Mui-focused fieldset": {
                     borderColor: "#aab6ff",
                     boxShadow: "0 0 12px rgba(170,182,255,0.6)",
                   },
                 },
-                "& .MuiInputBase-input": {
-                  color: "white",
-                },
+                "& .MuiInputBase-input": { color: "white" },
               }}
             />
 
@@ -219,20 +215,14 @@ function Login({ onLogin }) {
                   borderRadius: 3,
                   background: "rgba(255,255,255,0.18)",
                   color: "white",
-                  "& fieldset": {
-                    borderColor: "rgba(255,255,255,0.3)",
-                  },
-                  "&:hover fieldset": {
-                    borderColor: "rgba(255,255,255,0.5)",
-                  },
+                  "& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+                  "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
                   "&.Mui-focused fieldset": {
                     borderColor: "#aab6ff",
                     boxShadow: "0 0 12px rgba(170,182,255,0.6)",
                   },
                 },
-                "& .MuiInputBase-input": {
-                  color: "white",
-                },
+                "& .MuiInputBase-input": { color: "white" },
               }}
             />
 

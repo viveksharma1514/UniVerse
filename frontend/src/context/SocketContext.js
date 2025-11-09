@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import { Snackbar, Alert } from '@mui/material';
+import { API_URL } from '../config'; // ✅ import central API URL
 
 const SocketContext = createContext();
 export const useSocket = () => useContext(SocketContext);
@@ -16,7 +17,8 @@ export const SocketProvider = ({ children, user }) => {
   useEffect(() => {
     if (!user?._id) return; // wait until user data is available
 
-    const newSocket = io('http://localhost:5000', {
+    // ✅ Automatically connect to the right backend (local or Render)
+    const newSocket = io(API_URL, {
       transports: ['websocket'],
       withCredentials: true,
       reconnectionAttempts: 5,
@@ -61,7 +63,7 @@ export const SocketProvider = ({ children, user }) => {
     });
 
     return () => {
-      // Proper cleanup to avoid memory leaks
+      // ✅ Proper cleanup to avoid memory leaks
       newSocket.off('teachers-updated');
       newSocket.off('receive-message');
       newSocket.off('new-notification');

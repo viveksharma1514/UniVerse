@@ -24,6 +24,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SchoolIcon from "@mui/icons-material/School";
 import RoomIcon from "@mui/icons-material/Room";
+import { API_URL } from "../config";
 
 function TeacherSchedule({ user }) {
   const theme = useTheme();
@@ -45,7 +46,7 @@ function TeacherSchedule({ user }) {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://localhost:5000/api/schedule/teacher", {
+    fetch(`${API_URL}/api/schedule/teacher`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -71,7 +72,7 @@ function TeacherSchedule({ user }) {
       setNewClass({ subject: "", time: "", day: "", room: "" });
       setOpen(false);
 
-      await fetch("http://localhost:5000/api/notifications/schedule-class", {
+      await fetch(`${API_URL}/api/notifications/schedule-class`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +124,7 @@ function TeacherSchedule({ user }) {
           transition: "all 0.3s ease",
         }}
       >
-        {/* Header Section */}
+        {/* Header */}
         <Paper
           sx={{
             p: 4,
@@ -191,7 +192,7 @@ function TeacherSchedule({ user }) {
           </Button>
         </Paper>
 
-        {/* Classes List */}
+        {/* Classes */}
         <Grid container spacing={3}>
           {classes.length > 0 ? (
             classes.map((cls, idx) => (
@@ -232,42 +233,16 @@ function TeacherSchedule({ user }) {
                       {cls.subject}
                     </Typography>
                     <Divider sx={{ opacity: 0.2, mb: 1 }} />
-                    <Typography
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        opacity: 0.9,
-                        mb: 0.5,
-                      }}
-                    >
-                      <CalendarMonthIcon
-                        sx={{ mr: 1, color: isDark ? "#38BDF8" : "#00B4D8" }}
-                      />
+                    <Typography sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+                      <CalendarMonthIcon sx={{ mr: 1, color: "#00B4D8" }} />
                       {cls.day}
                     </Typography>
-                    <Typography
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        opacity: 0.9,
-                        mb: 0.5,
-                      }}
-                    >
-                      <AccessTimeIcon
-                        sx={{ mr: 1, color: isDark ? "#4ADE80" : "#2DD4BF" }}
-                      />
+                    <Typography sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+                      <AccessTimeIcon sx={{ mr: 1, color: "#2DD4BF" }} />
                       {cls.time}
                     </Typography>
-                    <Typography
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        opacity: 0.8,
-                      }}
-                    >
-                      <RoomIcon
-                        sx={{ mr: 1, color: isDark ? "#A5B4FC" : "#6C63FF" }}
-                      />
+                    <Typography sx={{ display: "flex", alignItems: "center" }}>
+                      <RoomIcon sx={{ mr: 1, color: "#6C63FF" }} />
                       Room: {cls.room || "N/A"}
                     </Typography>
                   </CardContent>
@@ -275,15 +250,7 @@ function TeacherSchedule({ user }) {
               </Grid>
             ))
           ) : (
-            <Typography
-              sx={{
-                ml: 2,
-                color: isDark
-                  ? "rgba(255,255,255,0.6)"
-                  : "rgba(0,0,0,0.6)",
-                fontSize: "1.1rem",
-              }}
-            >
+            <Typography sx={{ ml: 2, fontSize: "1.1rem", opacity: 0.7 }}>
               No classes scheduled yet.
             </Typography>
           )}
@@ -297,9 +264,7 @@ function TeacherSchedule({ user }) {
             sx: {
               borderRadius: 3,
               p: 1,
-              background: isDark
-                ? "rgba(30,30,30,0.95)"
-                : "rgba(255,255,255,0.98)",
+              background: isDark ? "rgba(30,30,30,0.95)" : "rgba(255,255,255,0.98)",
               backdropFilter: "blur(12px)",
             },
           }}
@@ -350,10 +315,7 @@ function TeacherSchedule({ user }) {
             <Button
               onClick={handleAddClass}
               variant="contained"
-              sx={{
-                background: accentGradient,
-                fontWeight: 600,
-              }}
+              sx={{ background: accentGradient, fontWeight: 600 }}
             >
               Add
             </Button>

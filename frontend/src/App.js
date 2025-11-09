@@ -39,17 +39,29 @@ function AuthPage({ onLogin }) {
     : <Register onLogin={onLogin} switchToLogin={switchToLogin} />;
 }
 
+// ✅ Safe localStorage user parser
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn('⚠️ Failed to parse stored user:', err);
+    return null;
+  }
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load user from localStorage (persistent login)
+  // ✅ Load user from localStorage safely (persistent login)
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    const storedUser = getStoredUser();
 
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    if (token && storedUser) {
+      setUser(storedUser);
     }
     setLoading(false);
   }, []);
@@ -83,7 +95,7 @@ function App() {
       <CssBaseline />
 
       {/* ✅ Wrap entire app inside SocketProvider + NotificationProvider */}
-      <SocketProvider user={user && user._id ? user : JSON.parse(localStorage.getItem('user'))}>
+      <SocketProvider user={user && user._id ? user : getStoredUser()}>
         <NotificationProvider>
           <Router>
             {/* 🔷 Top Navbar */}

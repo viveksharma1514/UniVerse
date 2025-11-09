@@ -1,4 +1,4 @@
-// server.js (FINAL)
+// server.js (RENDER-READY VERSION)
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -18,7 +18,6 @@ const notificationRoutes = require("./routes/notifications");
 const attendanceRoutes = require("./routes/attendance");
 const scheduleRoutes = require("./routes/schedule");
 
-
 // ✅ NEW IMPORTS for Admin & Events
 const adminAuthRoutes = require("./routes/adminAuth");
 const eventRoutes = require("./routes/events");
@@ -34,7 +33,7 @@ const { startSmartScheduler } = require("./utils/smartScheduler");
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
     credentials: true,
   })
 );
@@ -52,7 +51,6 @@ app.use("/api/chats", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/schedule", scheduleRoutes);
-
 
 // ✅ NEW ROUTES for Admin + Events
 app.use("/api/admin", adminAuthRoutes);
@@ -91,12 +89,15 @@ app.get("/api/health", (req, res) =>
   })
 );
 
+// ✅ Render Root Health Check
+app.get("/", (req, res) => {
+  res.send("✅ Universe Backend Running Successfully");
+});
+
 // --- DB CONNECTION ---
 const connectDB = async () => {
   try {
-    await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/universe"
-    );
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log("✅ MongoDB Connected Successfully");
   } catch (error) {
     console.log("❌ MongoDB Connection Error:", error.message);
@@ -108,7 +109,7 @@ const connectDB = async () => {
 const server = http.createServer(app);
 const io = socketio(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -151,7 +152,6 @@ io.on("connection", (socket) => {
     console.log(`👋 Left chat room: ${chatId}`);
   });
 
-  // ✅ Save messages to DB and broadcast
   socket.on("send-message", async (messageData) => {
     try {
       if (!messageData || !messageData.chat) return;

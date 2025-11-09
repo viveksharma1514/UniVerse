@@ -26,8 +26,7 @@ import {
   Download,
   NoteAdd,
 } from "@mui/icons-material";
-
-const API_BASE = "http://localhost:5000/api";
+import { API_URL } from "../config";
 
 const StudyNotesPortal = ({ user }) => {
   const [notes, setNotes] = useState([]);
@@ -41,7 +40,7 @@ const StudyNotesPortal = ({ user }) => {
   const fetchNotes = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE}/notes/all`, {
+      const response = await fetch(`${API_URL}/api/notes/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -72,7 +71,7 @@ const StudyNotesPortal = ({ user }) => {
       formData.append("description", noteDescription);
       noteFiles.forEach((file) => formData.append("files", file));
 
-      const response = await fetch(`${API_BASE}/notes/upload`, {
+      const response = await fetch(`${API_URL}/api/notes/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -96,7 +95,7 @@ const StudyNotesPortal = ({ user }) => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${API_BASE}/files/download/notes/${file.filename}`,
+        `${API_URL}/api/files/download/notes/${file.filename}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const blob = await response.blob();
@@ -113,7 +112,7 @@ const StudyNotesPortal = ({ user }) => {
 
   const handlePreview = (file) => {
     const token = localStorage.getItem("token");
-    const url = `${API_BASE}/files/preview/notes/${file.filename}?token=${token}`;
+    const url = `${API_URL}/api/files/preview/notes/${file.filename}?token=${token}`;
     window.open(url, "_blank");
   };
 
@@ -125,7 +124,7 @@ const StudyNotesPortal = ({ user }) => {
     if (!window.confirm("Delete this note permanently?")) return;
     try {
       const token = localStorage.getItem("token");
-      await fetch(`${API_BASE}/notes/${id}`, {
+      await fetch(`${API_URL}/api/notes/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

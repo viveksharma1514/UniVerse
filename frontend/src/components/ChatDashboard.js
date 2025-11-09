@@ -25,6 +25,7 @@ import ChatWindow from "./ChatWindow";
 import NewChatModal from "./NewChatModal";
 import { useSocket } from "../context/SocketContext";
 import { motion } from "framer-motion";
+import { API_URL } from "../config"; // ✅ centralized backend import
 
 const ChatDashboard = ({ user, onBack }) => {
   const [selectedChat, setSelectedChat] = useState(null);
@@ -39,18 +40,21 @@ const ChatDashboard = ({ user, onBack }) => {
     }
   }, [socket, user]);
 
+  // ✅ Dynamic API base
   const fetchChats = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/chats", {
+      const response = await fetch(`${API_URL}/api/chats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
         setChats(data);
+      } else {
+        console.error("❌ Failed to fetch chats:", response.status);
       }
     } catch (err) {
-      console.error("Error fetching chats:", err);
+      console.error("💥 Error fetching chats:", err);
     }
   };
 

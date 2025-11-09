@@ -29,15 +29,15 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useSocket } from '../context/SocketContext';
+import { API_URL } from '../config';
 
 function TeacherDirectory({ user }) {
   const [teachers, setTeachers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState(new Set());
-  const { socket, onlineTeachers } = useSocket(); // ✅ Get socket and online teacher list
+  const { socket, onlineTeachers } = useSocket();
 
-  // ✅ Memoized mock teacher data to prevent ESLint warnings
   const mockTeachers = useMemo(() => [
     {
       _id: '1',
@@ -107,7 +107,6 @@ function TeacherDirectory({ user }) {
     }
   ], []);
 
-  // ✅ Simulate API fetch
   useEffect(() => {
     const timer = setTimeout(() => {
       setTeachers(mockTeachers);
@@ -117,11 +116,11 @@ function TeacherDirectory({ user }) {
     return () => clearTimeout(timer);
   }, [mockTeachers]);
 
-  // ✅ Start chat with teacher
+  // ✅ Start chat with teacher (uses API_URL)
   const handleMessageTeacher = async (teacherId) => {
     try {
       const res = await axios.post(
-        'http://localhost:5000/api/chats/student-teacher',
+        `${API_URL}/api/chats/student-teacher`,
         { teacherId },
         {
           headers: {
@@ -197,7 +196,6 @@ function TeacherDirectory({ user }) {
 
   return (
     <Box sx={{ maxWidth: 1200, margin: '0 auto', px: { xs: 2, md: 3 } }}>
-      {/* Header */}
       <Box
         sx={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -215,7 +213,6 @@ function TeacherDirectory({ user }) {
         </Typography>
       </Box>
 
-      {/* Search */}
       <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
         <TextField
           fullWidth
@@ -233,7 +230,6 @@ function TeacherDirectory({ user }) {
         />
       </Paper>
 
-      {/* Teachers Grid */}
       <Grid container spacing={3}>
         {filteredTeachers.map((teacher, index) => {
           const isOnline = onlineTeachers.includes(teacher._id);
@@ -362,7 +358,6 @@ function TeacherDirectory({ user }) {
         })}
       </Grid>
 
-      {/* No Results */}
       {filteredTeachers.length === 0 && (
         <Fade in={true}>
           <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
