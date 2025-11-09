@@ -1,4 +1,4 @@
-// server.js (RENDER-READY VERSION)
+// server.js (RENDER-READY VERSION - FIXED CORS)
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -31,12 +31,20 @@ const { startSmartScheduler } = require("./utils/smartScheduler");
 
 // --- APP INIT ---
 const app = express();
+
+// ✅ FIXED: Allow both deployed frontend & localhost (CORS)
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: [
+      "https://universe-frontend-w2ul.onrender.com", // your deployed frontend
+      "http://localhost:3000",                      // local dev
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -109,7 +117,10 @@ const connectDB = async () => {
 const server = http.createServer(app);
 const io = socketio(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: [
+      "https://universe-frontend-w2ul.onrender.com",
+      "http://localhost:3000",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
