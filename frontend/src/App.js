@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useState, useEffect } from 'react';
 import {
   BrowserRouter as Router,
@@ -16,6 +17,7 @@ import Dashboard from './components/Dashboard';
 import Attendance from './components/Attendance';
 import { SocketProvider } from './context/SocketContext';
 import { NotificationProvider } from './context/NotificationContext';
+import BASE_URL from './config'; // ✅ Using deployed backend
 
 // 🎨 MUI Theme Configuration
 const theme = createTheme({
@@ -25,7 +27,7 @@ const theme = createTheme({
   },
 });
 
-// 🔐 Wrapper to handle Login/Register page switching
+// 🔐 AuthPage — Handles Login/Register Switching
 function AuthPage({ onLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,11 +41,11 @@ function AuthPage({ onLogin }) {
     : <Register onLogin={onLogin} switchToLogin={switchToLogin} />;
 }
 
-// ✅ Safe localStorage user parser
+// ✅ Safe LocalStorage Parser
 function getStoredUser() {
   try {
     const raw = localStorage.getItem('user');
-    if (!raw) return null;
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
     return JSON.parse(raw);
   } catch (err) {
     console.warn('⚠️ Failed to parse stored user:', err);
@@ -55,31 +57,28 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load user from localStorage safely (persistent login)
+  // ✅ Load stored user and token
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = getStoredUser();
-
-    if (token && storedUser) {
-      setUser(storedUser);
-    }
+    if (token && storedUser) setUser(storedUser);
     setLoading(false);
   }, []);
 
-  // ✅ On login success
+  // ✅ Login handler
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  // ✅ Logout user
+  // ✅ Logout handler
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
   };
 
-  // ⏳ Loading screen
+  // ⏳ Loading state
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
@@ -93,12 +92,10 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-
-      {/* ✅ Wrap entire app inside SocketProvider + NotificationProvider */}
       <SocketProvider user={user && user._id ? user : getStoredUser()}>
         <NotificationProvider>
           <Router>
-            {/* 🔷 Top Navbar */}
+            {/* 🔷 Navbar */}
             <AppBar position="static" color="primary" elevation={1}>
               <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography
@@ -133,45 +130,29 @@ function App() {
 
             {/* 🔗 Routes */}
             <Routes>
-              {/* 🔑 Auth Pages */}
+              {/* Auth Routes */}
               <Route
                 path="/login"
-                element={
-                  user
-                    ? <Navigate to="/dashboard" />
-                    : <AuthPage onLogin={handleLogin} />
-                }
+                element={user ? <Navigate to="/dashboard" /> : <AuthPage onLogin={handleLogin} />}
               />
               <Route
                 path="/register"
-                element={
-                  user
-                    ? <Navigate to="/dashboard" />
-                    : <AuthPage onLogin={handleLogin} />
-                }
+                element={user ? <Navigate to="/dashboard" /> : <AuthPage onLogin={handleLogin} />}
               />
 
-              {/* 📊 Dashboard */}
+              {/* Dashboard */}
               <Route
                 path="/dashboard"
-                element={
-                  user
-                    ? <Dashboard user={user} />
-                    : <Navigate to="/login" />
-                }
+                element={user ? <Dashboard user={user} /> : <Navigate to="/login" />}
               />
 
-              {/* 🕒 Attendance */}
+              {/* Attendance */}
               <Route
                 path="/attendance"
-                element={
-                  user
-                    ? <Attendance user={user} />
-                    : <Navigate to="/login" />
-                }
+                element={user ? <Attendance user={user} /> : <Navigate to="/login" />}
               />
 
-              {/* 🌐 Default Redirect */}
+              {/* Default Redirect */}
               <Route
                 path="/"
                 element={<Navigate to={user ? '/dashboard' : '/login'} />}
